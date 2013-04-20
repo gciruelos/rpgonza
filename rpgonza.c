@@ -74,7 +74,7 @@ int inventory[5] = {0, 0, 0, 0, 0};
 /*money, sword, shield, rocks, potatoes*/
 
 
-char tile_generation(int h, int l);
+void tile_generation(int h, int l);
 void dungeon_generation();
 void dungeon_cleaning();
 void assignspot();
@@ -100,7 +100,7 @@ int rand_lim(int limit);
 
 
 int main (){
-	char input;
+	char input = 0;
 	
 	srand(time(0));
 	
@@ -111,19 +111,18 @@ int main (){
 		cleanmonster();
 		assignmonster();
 		while (!analyze(input)){
-			system("clear");
+			(void) system("clear");
 			printf("\n");
-			printmap();
+			(void) printmap();
 			walk_monster();
 			input = getch();
 		}   
 	}
-	
 	return 0;
 }
 
 
-char tile_generation(int h, int l){
+void tile_generation(int h, int l){
 	int i, j;
 	
 	for (i = 1; i<h; i++){
@@ -265,12 +264,12 @@ void printexperiencebar(){
 
 
 int printmap(){
-	printf("DEBUG    LE YO: x=%i\ty=%i\n", myspot.x, myspot.y);
+	/*printf("DEBUG    LE YO: x=%i\ty=%i\n", myspot.x, myspot.y);
 	int h;
 	for (h = 0; monsters[h].x!='\0'; h++){
 		printf("DEBUG MONSTER%i: x=%i\ty=%i\t%i\t%i\t%i\t%i\t%c\n", h, monsters[h].x, monsters[h].y, monsters[h].health, monsters[h].attack, monsters[h].defense, monsters[h].alive, monsters[h].type);
 	}
-	printf("\n");
+	printf("\n");*/
 	
 	int a = 0, b;
 		
@@ -283,10 +282,10 @@ int printmap(){
 				return 0;
 			}
 			else if (istheremonster(a, b)){
-				printf("%c ", istheremonster(a, b));
+				printf("\033[1;31m%c \x1b[0m", istheremonster(a, b));
 			}
 			else if (a == myspot.x && b == myspot.y){
-				printf("\033[22;34m%c \x1b[0m", '&');
+				printf("\033[52;34m%c \x1b[0m", '&');
 			}
 			else{
 				printf("%c ", map[a][b]);
@@ -309,26 +308,17 @@ void experience_gain(int exp){
 	int lvl = mystats.level;
 	int max_experience = (lvl*lvl*lvl); /*Stolen from Pokemon. Fast*/
 	
-	if (mystats.experience+exp>=max_experience){
-		mystats.level++;
-		exp-=(max_experience-mystats.experience);
+	do{
 		if (mystats.experience+exp>=max_experience){
 			mystats.level++;
 			exp-=(max_experience-mystats.experience);
-			if (mystats.experience+exp>=max_experience){
-				mystats.level++;
-				exp-=(max_experience-mystats.experience);
-				if (mystats.experience+exp>=max_experience){
-					mystats.level++;
-					exp-=(max_experience-mystats.experience);
-					mystats.experience = exp;
-				}
-			}
 		}
-	}
-	else{
-		mystats.experience+=exp;
-	}
+		else{
+			mystats.experience+=exp;
+			break;
+		}
+	} while (exp>0);
+	
 }
 
 
@@ -490,17 +480,52 @@ void action_open_chest(){
 	else{
 		printf("_DEBUG: The random number genererated in the function action_open_chest is wrong: %i\n", n);
 	}
-	map[myspot.x][myspot.y] = ' ';
+	
+	changemap(myspot.x, myspot.y, ' ');
+	
 	SLEEP;
 }
 
 
 void action_press_button(){
-	int i;
-	for (i = 0; i<999; i++){
-		printf("420 BLAZE IT FAGGOT\n");
+	int i, j;
+	char guess[20];
+	
+	i = rand_lim(rand_lim(50));
+	
+	j = rand_lim(i);
+	
+	(void) system("clear");
+	
+	
+		printf("\n\nGuess a number between 0 and %i.\n", i);
+		scanf("%s", &guess);
+	
+	if (atoi(guess)!=j){
+		printf("Nope, the number was %i.\n", j);
 	}
+	else{
+		printf("Congrats.\n");
+		if (j%2){
+			printf("You earned %i points of experience.\n", i*mystats.level+1);
+			experience_gain(i*mystats.level);
+		}
+		else{
+			if (i%2){
+				printf("Your sword has been improved.\n");
+				inventory[1]++;
+			}
+			else{
+				printf("Your shield has been improved.\n");
+				inventory[2]++;
+			}
+		}
+	}
+	
+	changemap(myspot.x, myspot.y, ' ');
+	
 	SLEEP;
+	
 }
 
 
@@ -521,12 +546,19 @@ void action_attack_sword(){
 	}
 	
 	
-	if (monsters[a].health<=0){
-		monsters[a].alive = 0;
+	if (monsters[a].health<=0){	
 		printf("You have killed a monster! You have earned some experience.\n");
 		experience_gain((monsters[a].attack+1)*(monsters[a].defense+1));
+			
+		/*kill monster*/
+		monsters[a].x = 90; /*To avoid bugs*/
+		monsters[a].y = '\0';
+		monsters[a].health = '\0';
+		monsters[a].attack = '\0';
+		monsters[a].defense = '\0';
+		monsters[a].alive = '\0';
+		monsters[a].type = '\0';
 	}
-	
 }
 
 
@@ -565,15 +597,6 @@ void walk_monster(){
 			else{
 				printf("_DEBUG: RANDOM GENERATOR IN WALK_MONSTER");
 			}
-		}
-		else{
-			monsters->x = 90; /*To avoid bugs*/
-			monsters->y = '\0';
-			monsters->health = '\0';
-			monsters->attack = '\0';
-			monsters->defense = '\0';
-			monsters->alive = '\0';
-			monsters->type = '\0';
 		}
 	}
 
