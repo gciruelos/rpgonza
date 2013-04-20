@@ -16,7 +16,7 @@
 #define MAX_DUNGEON 20
 #define MONSTERS_PER_DUNGEON 0.015
 
-/* MAP EXAMPLE
+/* MAP EXAMPLE;
  * char map[1000][1000] = {{'#','#','#','#','#','#','#','\n'},
 							{'#',' ',' ',' ',' ',' ','#','\n'},
 							{'#',' ','?',' ',' ','@','#','\n'},
@@ -28,7 +28,18 @@
 							{'#',' ',' ',' ',' ',' ','#','\n'},
 							{'#',' ',' ',' ','?',' ','#','\n'},
 							{'#',' ',' ',' ',' ',' ','#','\n'},
-							{'#','#','#','#','#','#','#','E'}};*/
+							{'#','#','#','#','#','#','#','E'}};
+ */
+							
+/* COMBAT MODE:
+ * My attack   = 2.lvl
+ * My defense  = 2.lvl
+ * 
+ * His attack  = 2.lvl - rand(lvl/2) + lvl/4
+ * His defense = 2.lvl - rand(lvl/2) + lvl/4
+ * 
+ * Damage = attack -defense + rand(2) -1
+ */
 
 char map[30][30];
 
@@ -212,7 +223,7 @@ void cleanmonster(){
 
 
 void assignmonster(){
-	int a, b, i = 0, j = 0, h;
+	int a, b, i = 0, j = 0, h, lvl = mystats.level;
 	
 	a = maplh()/100;
 	b = maplh()%100;
@@ -229,12 +240,11 @@ void assignmonster(){
 			}
 			else break;
 		}
-		int att = mystats.level*5 - rand_lim(30), def = mystats.level*5 - rand_lim(30);
 		monsters[h].x = i;
 		monsters[h].y = j;
 		monsters[h].health = rand_lim(30)+80;
-		(att>0)? (monsters[h].attack = att) : (monsters[h].attack = 1);
-		(def>0)? (monsters[h].defense = def) : (monsters[h].defense = 1);
+		monsters[h].attack = 2*lvl - rand_lim(lvl/2) + lvl/4;
+		monsters[h].defense = 2*lvl - rand_lim(lvl/2) + lvl/4;
 		monsters[h].alive = 1;
 		monsters[h].type = randommonster();
 		
@@ -496,7 +506,7 @@ void action_press_button(){
 
 void action_attack_sword(){
 	int x = myspot.x, y = myspot.y, a;
-	int attack = mystats.level*3;
+	int attack = 2*mystats.level;
 	
 	for (a = 0; monsters[a].x!='\0'; a++){
 		if (abs(monsters[a].x-x)<=1 && abs(monsters[a].y-y)<=1){
@@ -504,7 +514,7 @@ void action_attack_sword(){
 		}
 	}
 	
-	int damage = attack + rand_lim(attack/6) - monsters[a].defense*2;
+	int damage = attack + -monsters[a].defense + rand_lim(8) - 4;
 	
 	if (damage>=0){
 		monsters[a].health -= damage;
@@ -524,7 +534,7 @@ void walk_monster(){
 	int a;
 	struct mon *monster;
 	
-	for (a = 0; monsters[a].x!='\0' && monsters[a].y!='\0'; a++){
+	for (a = 0; monsters[a].x; a++){
 		monster = &(monsters[a]);
 		if (monster->alive){
 			int c = rand_lim(3);
@@ -556,10 +566,9 @@ void walk_monster(){
 				printf("_DEBUG: RANDOM GENERATOR IN WALK_MONSTER");
 			}
 		}
-	
 		else{
 			monsters->x = 90; /*To avoid bugs*/
-			monsters->y = 90;
+			monsters->y = '\0';
 			monsters->health = '\0';
 			monsters->attack = '\0';
 			monsters->defense = '\0';
@@ -577,8 +586,8 @@ void walk_monster(){
 
 		
 void monster_turn(struct mon *monster){
-	int defense = mystats.level*2;
-	int damage = monster->attack*2 + rand_lim(monster->attack/6) - defense;
+	int defense = 2*mystats.level;
+	int damage = monster->attack - defense + rand_lim(8) - 4;
 	
 	if (damage>=0){
 		mystats.health -= damage;
