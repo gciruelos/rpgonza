@@ -573,7 +573,7 @@ void action_attack_sword(){
 
 
 void walk_monster(){
-	/*IA WANNABE*/
+	/*AI WANNABE*/
 	int a;
 	struct mon *monster;
 	
