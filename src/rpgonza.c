@@ -3,14 +3,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <unistd.h>
-#include <termios.h>
+#include "structs.h"
 #include "math.h"
 
 #ifdef _WIN32
 	#define SLEEP Sleep(1500)
+	#define CLEAR system("cls")
 #elif __linux__
+	#include "sys/linux.h"
 	#define SLEEP sleep(1.5)
+	#define CLEAR system("clear")
+	
 #endif
 
 #define MAX_DUNGEON 20
@@ -43,29 +46,9 @@
 
 char map[30][30];
 
-struct point {
-	int x;
-	int y;
-};
-
-struct stats {
-	int health;
-	int level;
-	int experience;
-};
-
-struct mon {
-	int x;
-	int y;
-	char type;
-	/* O Orc, D Dragon, G Goblin, W Witch, B Beast, M Minotaur*/
-	int health;
-	int attack;
-	int defense;
-	int alive;
-};
-
 struct mon monsters[6];
+
+int dungeon_no = 0;
 
 
 struct point myspot;
@@ -94,7 +77,7 @@ void walk_monster();
 void monster_turn(struct mon *monster);
 int maplh();
 char randommonster();
-char istheremonster(int x, int y);
+int istheremonster(int x, int y);
 int getch (void);
 int rand_lim(int limit);
 
@@ -105,13 +88,14 @@ int main (){
 	srand(time(0));
 	
 	while (1) {
+		dungeon_no++;
 		dungeon_cleaning();
 		dungeon_generation();
 		assignspot();
 		cleanmonster();
 		assignmonster();
 		while (!analyze(input)){
-			(void) system("clear");
+			CLEAR;
 			printf("\n");
 			(void) printmap();
 			walk_monster();
@@ -125,15 +109,17 @@ int main (){
 void tile_generation(int h, int l){
 	int i, j;
 	
+	float difficulty = dungeon_no/50.0;
+	
 	for (i = 1; i<h; i++){
 		for (j = 1; j<l; j++){
-			if (rand_lim(30)==1){
+			if (rand_lim(30/difficulty)==1){
 				map[i][j] = '.';
 			}
-			else if (rand_lim(40)==1){
+			else if (rand_lim(30/difficulty)==1){
 				map[i][j] = '?';
 			}
-			else if (rand_lim(1000)==1){
+			else if (rand_lim(1000/difficulty)==1){
 				map[i][j] = '%';
 			}
 		}
@@ -271,7 +257,7 @@ int printmap(){
 	}
 	printf("\n");*/
 	
-	int a = 0, b;
+	int a = 0, b, c;
 		
 	printf(" ");
 	for (a = 0;;a++){
@@ -279,10 +265,20 @@ int printmap(){
 			if (map[a][b] == 'E'){
 				printf("\n Health: %i\tLevel: %i\n Experience: ", mystats.health, mystats.level);
 				printexperiencebar();
+				printf("Dungeon number: %i\n\n", dungeon_no);
 				return 0;
 			}
-			else if (istheremonster(a, b)){
-				printf("\033[1;31m%c \x1b[0m", istheremonster(a, b));
+			else if (istheremonster(a, b)+1){
+				c = istheremonster(a, b);
+				if (monsters[c].health>=50){
+					printf("\033[1;31m%c \x1b[0m", monsters[c].type);
+				}
+				else if (monsters[c].health<50 && monsters[c].health>=20){
+					printf("\033[0;31m%c \x1b[0m", monsters[c].type);
+				}
+				else if (monsters[c].health<20){
+					printf("\033[2;31m%c \x1b[0m", monsters[c].type);
+				}
 			}
 			else if (a == myspot.x && b == myspot.y){
 				printf("\033[52;34m%c \x1b[0m", '&');
@@ -377,7 +373,7 @@ void end (char type){
 			break;
 	}
 	
-	system("clear");
+	CLEAR;
 	
 	printf("     _______________      \n");
 	printf("    /               \\    \n");
@@ -495,7 +491,7 @@ void action_press_button(){
 	
 	j = rand_lim(i);
 	
-	(void) system("clear");
+	CLEAR;
 	
 	
 		printf("\n\nGuess a number between 0 and %i.\n", i);
@@ -539,7 +535,7 @@ void action_attack_sword(){
 		}
 	}
 	
-	int damage = attack + -monsters[a].defense + rand_lim(8) - 4;
+	int damage = attack + -monsters[a].defense + rand_lim(30) - 20 + inventory[1];
 	
 	if (damage>=0){
 		monsters[a].health -= damage;
@@ -610,7 +606,7 @@ void walk_monster(){
 		
 void monster_turn(struct mon *monster){
 	int defense = 2*mystats.level;
-	int damage = monster->attack - defense + rand_lim(8) - 4;
+	int damage = monster->attack - defense + rand_lim(30) - 15 - inventory[2];
 	
 	if (damage>=0){
 		mystats.health -= damage;
@@ -661,31 +657,17 @@ char randommonster(){
 }
 
 
-char istheremonster(int x, int y){
+int istheremonster(int x, int y){
 	int a;
 	for (a = 0; monsters[a].x!='\0'; a++){
 		if (monsters[a].x == x && monsters[a].y == y && monsters[a].alive){
-			return monsters[a].type;
+			return a;
 		}
 	}
-	return '\0';
+	return -1;
 }
 	
 
-int getch(){
-	/*http://forums.debian.net/viewtopic.php?f=8&t=59524*/
-	int ch;
-	struct termios origterm, tmpterm;
-
-	tcgetattr(STDIN_FILENO, &origterm);
-	tmpterm = origterm;
-	tmpterm.c_lflag &= ~(ICANON | ECHO);
-	tcsetattr(STDIN_FILENO, TCSANOW, &tmpterm);
-	ch = getchar();
-	tcsetattr(STDIN_FILENO, TCSANOW, &origterm);
-
-	return ch;
-}
 
 
 int rand_lim(int limit) {
