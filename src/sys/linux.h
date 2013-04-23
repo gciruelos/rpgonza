@@ -15,3 +15,8 @@ int getch(){
 
 	return ch;
 }
+
+
+void clear(){
+	system("clear");
+}

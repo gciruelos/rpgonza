@@ -3,17 +3,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 #include "structs.h"
-#include "math.h"
+
 
 #ifdef _WIN32
+	#include "sys/windows.h"
 	#define SLEEP Sleep(1500)
-	#define CLEAR system("cls")
 #elif __linux__
 	#include "sys/linux.h"
-	#define SLEEP sleep(1.5)
-	#define CLEAR system("clear")
-	
+	#define SLEEP sleep(1.5)	
 #endif
 
 #define MAX_DUNGEON 20
@@ -57,6 +56,7 @@ int inventory[5] = {0, 0, 0, 0, 0};
 /*money, sword, shield, rocks, potatoes*/
 
 
+void messages(int i);
 void tile_generation(int h, int l);
 void dungeon_generation();
 void dungeon_cleaning();
@@ -78,7 +78,6 @@ void monster_turn(struct mon *monster);
 int maplh();
 char randommonster();
 int istheremonster(int x, int y);
-int getch (void);
 int rand_lim(int limit);
 
 
@@ -86,6 +85,8 @@ int main (){
 	char input = 0;
 	
 	srand(time(0));
+	
+	messages(1);
 	
 	while (1) {
 		dungeon_no++;
@@ -95,10 +96,10 @@ int main (){
 		cleanmonster();
 		assignmonster();
 		while (!analyze(input)){
-			CLEAR;
+			clear();
 			printf("\n");
-			(void) printmap();
 			walk_monster();
+			(void) printmap();
 			input = getch();
 		}   
 	}
@@ -106,10 +107,24 @@ int main (){
 }
 
 
+void messages(int i){
+	clear();
+	
+	if (i==1){
+		char game[40] = "*** GAME INSTRUCTIONS ***";
+		char inst[100] = "wasd to walk, e to open chests ('?') and riddles ('.'), space bar to attack.";
+		printf("%s\n\n%s\n", game, inst);
+	}
+	else {printf("error");}
+	
+	(void) getch();
+}
+
+
 void tile_generation(int h, int l){
 	int i, j;
 	
-	float difficulty = dungeon_no/50.0;
+	float difficulty =  sqrt(dungeon_no)/4;
 	
 	for (i = 1; i<h; i++){
 		for (j = 1; j<l; j++){
@@ -233,7 +248,6 @@ void assignmonster(){
 		monsters[h].alive = 1;
 		monsters[h].type = randommonster();
 		
-		//printf("%i\t%i\t%i\t%i\t%c\n", monsters[h].x, monsters[h].y, monsters[h].health, monsters[h].alive, monsters[h].type);
 		i = j = 0;
 	}
 }
@@ -373,7 +387,7 @@ void end (char type){
 			break;
 	}
 	
-	CLEAR;
+	clear();
 	
 	printf("     _______________      \n");
 	printf("    /               \\    \n");
@@ -491,7 +505,7 @@ void action_press_button(){
 	
 	j = rand_lim(i);
 	
-	CLEAR;
+	clear();
 	
 	
 		printf("\n\nGuess a number between 0 and %i.\n", i);
@@ -535,7 +549,7 @@ void action_attack_sword(){
 		}
 	}
 	
-	int damage = attack + -monsters[a].defense + rand_lim(30) - 20 + inventory[1];
+	int damage = attack + -monsters[a].defense + rand_lim(10) - 5 + inventory[1];
 	
 	if (damage>=0){
 		monsters[a].health -= damage;
@@ -559,41 +573,73 @@ void action_attack_sword(){
 
 
 void walk_monster(){
+	/*IA WANNABE*/
 	int a;
 	struct mon *monster;
 	
 	for (a = 0; monsters[a].x; a++){
 		monster = &(monsters[a]);
 		if (monster->alive){
-			int c = rand_lim(3);
-			if (!c){
-				monster->x-=1;
-				if (map[monster->x][monster->y] == '#' || (monster->x==myspot.x && monster->y==myspot.y)){
-					monster->x+=1;
-				}
-			}
-			else if (c == 1){
-				monster->x+=1;
-				if (map[monster->x][monster->y] == '#' || (monster->x==myspot.x && monster->y==myspot.y)){
+			int b = rand_lim(2);
+			
+			if (!b){
+				int c = rand_lim(3);
+				if (!c){
 					monster->x-=1;
+					if (map[monster->x][monster->y] == '#' || (monster->x==myspot.x && monster->y==myspot.y)){
+						monster->x+=1;
+					}
 				}
-			}
-			else if (c == 2){
-				monster->y-=1;
-				if (map[monster->x][monster->y] == '#' || (monster->x==myspot.x && monster->y==myspot.y)){
-					monster->y+=1;
+				else if (c == 1){
+					monster->x+=1;
+					if (map[monster->x][monster->y] == '#' || (monster->x==myspot.x && monster->y==myspot.y)){
+						monster->x-=1;
+					}
 				}
-			}
-			else if (c == 3){
-				monster->y+=1;
-				if (map[monster->x][monster->y] == '#' || (monster->x==myspot.x && monster->y==myspot.y)){
+				else if (c == 2){
 					monster->y-=1;
+					if (map[monster->x][monster->y] == '#' || (monster->x==myspot.x && monster->y==myspot.y)){
+						monster->y+=1;
+					}
+				}
+				else if (c == 3){
+					monster->y+=1;
+					if (map[monster->x][monster->y] == '#' || (monster->x==myspot.x && monster->y==myspot.y)){
+						monster->y-=1;
+					}
+				}
+				else{
+					printf("_DEBUG: RANDOM GENERATOR IN WALK_MONSTER");
 				}
 			}
 			else{
-				printf("_DEBUG: RANDOM GENERATOR IN WALK_MONSTER");
+				if (monster->x-myspot.x>0){
+					monster->x-=1;
+					if (map[monster->x][monster->y] == '#' || (monster->x==myspot.x && monster->y==myspot.y)){
+						monster->x+=1;
+					}
+				}
+				else if (monster->y-myspot.y>0){
+					monster->y-=1;
+					if (map[monster->x][monster->y] == '#' || (monster->x==myspot.x && monster->y==myspot.y)){
+						monster->y+=1;
+					}
+				}
+				else if (monster->x-myspot.x<0){
+					monster->x+=1;
+					if (map[monster->x][monster->y] == '#' || (monster->x==myspot.x && monster->y==myspot.y)){
+						monster->x-=1;
+					}
+				}
+				else if (monster->y-myspot.y<0){
+					monster->y+=1;
+					if (map[monster->x][monster->y] == '#' || (monster->x==myspot.x && monster->y==myspot.y)){
+						monster->y-=1;
+					}
+				}
+				else{walk_monster();}
 			}
-		}
+		}		
 	}
 
 	for (a = 0; monsters[a].x!='\0'; a++){
@@ -606,7 +652,7 @@ void walk_monster(){
 		
 void monster_turn(struct mon *monster){
 	int defense = 2*mystats.level;
-	int damage = monster->attack - defense + rand_lim(30) - 15 - inventory[2];
+	int damage = monster->attack - defense - inventory[2];
 	
 	if (damage>=0){
 		mystats.health -= damage;
