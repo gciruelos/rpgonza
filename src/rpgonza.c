@@ -580,7 +580,7 @@ void walk_monster(){
 	for (a = 0; monsters[a].x; a++){
 		monster = &(monsters[a]);
 		if (monster->alive){
-			int b = rand_lim(2);
+			int b = rand_lim(1);
 			
 			if (!b){
 				int c = rand_lim(3);
@@ -652,7 +652,7 @@ void walk_monster(){
 		
 void monster_turn(struct mon *monster){
 	int defense = 2*mystats.level;
-	int damage = monster->attack - defense - inventory[2];
+	int damage = monster->attack - defense + rand_lim(2) - inventory[2];
 	
 	if (damage>=0){
 		mystats.health -= damage;
@@ -712,8 +712,6 @@ int istheremonster(int x, int y){
 	}
 	return -1;
 }
-	
-
 
 
 int rand_lim(int limit) {
