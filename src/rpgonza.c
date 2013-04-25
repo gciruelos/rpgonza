@@ -5,7 +5,7 @@
 #include <time.h>
 #include <math.h>
 #include "structs.h"
-
+#include "rpgonza.h"
 
 #ifdef _WIN32
 	#include "sys/windows.h"
@@ -17,69 +17,6 @@
 
 #define MAX_DUNGEON 20
 #define MONSTERS_PER_DUNGEON 0.015
-
-/* MAP EXAMPLE;
- * char map[1000][1000] = {{'#','#','#','#','#','#','#','\n'},
-							{'#',' ',' ',' ',' ',' ','#','\n'},
-							{'#',' ','?',' ',' ','@','#','\n'},
-							{'#',' ',' ',' ',' ',' ','#','\n'},
-							{'#',' ',' ',' ',' ',' ','#','\n'},
-							{'#',' ',' ',' ','.',' ','#','\n'},
-							{'#','.',' ',' ',' ',' ','#','\n'},
-							{'#',' ',' ','.',' ',' ','#','\n'},
-							{'#',' ',' ',' ',' ',' ','#','\n'},
-							{'#',' ',' ',' ','?',' ','#','\n'},
-							{'#',' ',' ',' ',' ',' ','#','\n'},
-							{'#','#','#','#','#','#','#','E'}};
- */
-							
-/* COMBAT MODE:
- * My attack   = 2.lvl
- * My defense  = 2.lvl
- * 
- * His attack  = 2.lvl - rand(lvl/2) + lvl/4
- * His defense = 2.lvl - rand(lvl/2) + lvl/4
- * 
- * Damage = attack -defense + rand(2) -1
- */
-
-char map[30][30];
-
-struct mon monsters[6];
-
-int dungeon_no = 0;
-
-
-struct point myspot;
-struct stats mystats = {100, 2, 0};
-int inventory[5] = {0, 0, 0, 0, 0};
-/*money, sword, shield, rocks, potatoes*/
-
-
-void messages(int i);
-void tile_generation(int h, int l);
-void dungeon_generation();
-void dungeon_cleaning();
-void assignspot();
-void cleanmonster();
-void assignmonster();
-void printexperiencebar();
-int printmap ();
-void changemap(int x, int y, char c);
-void experience_gain(int exp);
-int analyze (char c);
-void show_inventory();
-void action_walk(char c);
-void action_open_chest();
-void action_press_button();
-void action_attack_sword();
-void walk_monster();
-void monster_turn(struct mon *monster);
-int maplh();
-char randommonster();
-int istheremonster(int x, int y);
-int rand_lim(int limit);
-
 
 int main (){
 	char input = 0;
@@ -358,6 +295,9 @@ int analyze (char c){
 	else if (c == ' ' && nearbymonster()){
 		action_attack_sword();
 	}
+	else if (c == 'x' && inventory[3]){
+		action_attack_rock();
+	}
 	return 0;
 	
 }
@@ -549,7 +489,7 @@ void action_attack_sword(){
 		}
 	}
 	
-	int damage = attack + -monsters[a].defense + rand_lim(10) - 5 + inventory[1];
+	int damage = attack + -monsters[a].defense + rand_lim(mystats.level/2) + inventory[1];
 	
 	if (damage>=0){
 		monsters[a].health -= damage;
@@ -558,7 +498,7 @@ void action_attack_sword(){
 	
 	if (monsters[a].health<=0){	
 		printf("You have killed a monster! You have earned some experience.\n");
-		experience_gain((monsters[a].attack+1)*(monsters[a].defense+1));
+		experience_gain(mystats.level*mystats.level+monsters[a].attack+monsters[a].defense+1);
 			
 		/*kill monster*/
 		monsters[a].x = 90; /*To avoid bugs*/
@@ -572,15 +512,35 @@ void action_attack_sword(){
 }
 
 
+void action_attack_rock(){
+	
+}
+
+
 void walk_monster(){
 	/*AI WANNABE*/
-	int a;
+	int a, t;
 	struct mon *monster;
 	
 	for (a = 0; monsters[a].x; a++){
 		monster = &(monsters[a]);
 		if (monster->alive){
-			int b = rand_lim(1);
+			switch(monster->type){
+				/* O Orc, D Dragon, G Goblin, W Witch, B Beast, M Minotaur*/
+				case 'W':
+					t = 3;
+					break;
+				case 'D':
+				case 'B':
+				case 'G':
+					t = 2;
+					break;
+				case 'O':
+				case 'M':
+					t = 1;
+					break;
+			}
+			int b = rand_lim(t);
 			
 			if (!b){
 				int c = rand_lim(3);
@@ -652,7 +612,7 @@ void walk_monster(){
 		
 void monster_turn(struct mon *monster){
 	int defense = 2*mystats.level;
-	int damage = monster->attack - defense + rand_lim(2) - inventory[2];
+	int damage = monster->attack - defense + rand_lim(mystats.level/4) - inventory[2];
 	
 	if (damage>=0){
 		mystats.health -= damage;
